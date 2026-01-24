@@ -142,6 +142,8 @@ func main() {
 }
 ```
 
+A complete example consumer is available in the `examples/consumer` directory.
+
 ## Development
 
 ### Running Tests
