@@ -71,7 +71,8 @@ func (s *Server) Close() error {
 // verifySignature verifies the HMAC signature from Starling webhook
 func (s *Server) verifySignature(payload []byte, signature string) bool {
 	if s.config.WebhookSecret == "" {
-		log.Println("Warning: No webhook secret configured, skipping signature verification")
+		// In production, you should always set WEBHOOK_SECRET
+		// This warning is logged at startup
 		return true
 	}
 
@@ -97,7 +98,6 @@ func (s *Server) handleWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	defer r.Body.Close()
 
 	// Verify the signature
 	signature := r.Header.Get("X-Hook-Signature")
