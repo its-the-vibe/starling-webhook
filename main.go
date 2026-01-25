@@ -24,6 +24,7 @@ type Config struct {
 	RedisAddr     string
 	RedisChannel  string
 	WebhookSecret string
+	RedisPassword string
 }
 
 // WebhookEvent represents a generic Starling webhook event
@@ -44,7 +45,8 @@ type Server struct {
 // NewServer creates a new Server instance
 func NewServer(config *Config) (*Server, error) {
 	redisClient := redis.NewClient(&redis.Options{
-		Addr: config.RedisAddr,
+		Addr:     config.RedisAddr,
+		Password: config.RedisPassword,
 	})
 
 	// Test the connection
@@ -150,10 +152,15 @@ func loadConfig() *Config {
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
 		RedisChannel:  getEnv("REDIS_CHANNEL", "starling_events"),
 		WebhookSecret: getEnv("WEBHOOK_SECRET", ""),
+		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 	}
 
 	if config.WebhookSecret == "" {
 		log.Println("Warning: WEBHOOK_SECRET not set. Webhook signature verification will be skipped.")
+	}
+
+	if config.RedisPassword == "" {
+		log.Println("Warning: REDIS_PASSWORD not set. Redis connection will be attempted without a password.")
 	}
 
 	return config
