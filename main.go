@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/rsa"
-	"crypto/sha256"
+	"crypto/sha512"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -102,19 +102,17 @@ func (s *Server) verifySignature(payload []byte, signature string) bool {
 		return true
 	}
 
-	// 1. Decode the signature from the header
 	sigBytes, err := base64.StdEncoding.DecodeString(signature)
 	if err != nil {
 		return false
 	}
 
-	// 2. Hash the payload
-	// Most providers use SHA256 for RSA signatures
-	hash := sha256.Sum256(payload)
+	// 1. Generate a SHA512 hash of the payload
+	hash := sha512.Sum512(payload)
 
-	// 3. Verify using the Public Key
-	// We use rsa.VerifyPKCS1v15 for standard RSA signatures
-	err = rsa.VerifyPKCS1v15(s.publicKey, crypto.SHA256, hash[:], sigBytes)
+	// 2. Verify using crypto.SHA512 constant
+	// Note: slice the hash [:] to pass it as a byte slice
+	err = rsa.VerifyPKCS1v15(s.publicKey, crypto.SHA512, hash[:], sigBytes)
 
 	return err == nil
 }
