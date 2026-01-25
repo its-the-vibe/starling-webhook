@@ -32,11 +32,11 @@ type Config struct {
 
 // WebhookEvent represents a generic Starling webhook event
 type WebhookEvent struct {
-	EventType        string          `json:"eventType"`
-	Timestamp        string          `json:"timestamp"`
+	EventType        string          `json:"webhookType"`
+	Timestamp        string          `json:"eventTimestamp"`
 	Content          json.RawMessage `json:"content"`
 	AccountHolderUID string          `json:"accountHolderUid,omitempty"`
-	EventID          string          `json:"eventId,omitempty"`
+	EventID          string          `json:"webhookEventUid,omitempty"`
 }
 
 // Server handles HTTP requests and publishes to Redis
