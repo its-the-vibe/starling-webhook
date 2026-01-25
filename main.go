@@ -181,7 +181,7 @@ func loadConfig() *Config {
 	config := &Config{
 		Port:          getEnv("PORT", "8080"),
 		RedisAddr:     getEnv("REDIS_ADDR", "localhost:6379"),
-		RedisChannel:  getEnv("REDIS_CHANNEL", "starling_events"),
+		RedisChannel:  getEnv("REDIS_CHANNEL", "starling-events"),
 		WebhookSecret: getEnv("WEBHOOK_SECRET", ""),
 		RedisPassword: getEnv("REDIS_PASSWORD", ""),
 	}

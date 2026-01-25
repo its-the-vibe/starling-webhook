@@ -28,7 +28,7 @@ The service is configured via environment variables:
 |----------|-------------|---------|
 | `PORT` | HTTP server port | `8080` |
 | `REDIS_ADDR` | Redis server address | `localhost:6379` |
-| `REDIS_CHANNEL` | Redis channel name for publishing events | `starling_events` |
+| `REDIS_CHANNEL` | Redis channel name for publishing events | `starling-events` |
 | `WEBHOOK_SECRET` | Starling webhook secret for signature verification | _(empty, verification skipped)_ |
 
 ## Installation
@@ -52,7 +52,7 @@ go run main.go
 ```bash
 # Set environment variables
 export REDIS_ADDR="localhost:6379"
-export REDIS_CHANNEL="starling_events"
+export REDIS_CHANNEL="starling-events"
 export WEBHOOK_SECRET="your-webhook-secret"
 export PORT="8080"
 
@@ -66,7 +66,7 @@ export PORT="8080"
 docker run -d \
   -p 8080:8080 \
   -e REDIS_ADDR="redis:6379" \
-  -e REDIS_CHANNEL="starling_events" \
+  -e REDIS_CHANNEL="starling-events" \
   -e WEBHOOK_SECRET="your-webhook-secret" \
   starling-webhook
 ```
@@ -133,7 +133,7 @@ func main() {
         Addr: "localhost:6379",
     })
 
-    pubsub := rdb.Subscribe(context.Background(), "starling_events")
+    pubsub := rdb.Subscribe(context.Background(), "starling-events")
     ch := pubsub.Channel()
 
     for msg := range ch {
