@@ -2,10 +2,13 @@ package main
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha512"
+	"crypto"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -40,6 +43,7 @@ type WebhookEvent struct {
 type Server struct {
 	config      *Config
 	redisClient *redis.Client
+	publicKey   *rsa.PublicKey
 }
 
 // NewServer creates a new Server instance
@@ -70,20 +74,49 @@ func (s *Server) Close() error {
 	return s.redisClient.Close()
 }
 
-// verifySignature verifies the HMAC signature from Starling webhook
+func (s *Server) initialiseKey() error {
+	// Decode the Base64 string from your config
+	der, err := base64.StdEncoding.DecodeString(s.config.WebhookSecret)
+	if err != nil {
+		return err
+	}
+
+	// Parse the PKIX/X.509 format
+	pub, err := x509.ParsePKIXPublicKey(der)
+	if err != nil {
+		return err
+	}
+
+	// Assert that it is indeed an RSA key
+	rsaPub, ok := pub.(*rsa.PublicKey)
+	if !ok {
+		return errors.New("not an RSA public key")
+	}
+
+	s.publicKey = rsaPub
+	return nil
+}
+
 func (s *Server) verifySignature(payload []byte, signature string) bool {
 	if s.config.WebhookSecret == "" {
-		// In production, you should always set WEBHOOK_SECRET
-		// This warning is logged at startup
 		return true
 	}
 
-	mac := hmac.New(sha512.New, []byte(s.config.WebhookSecret))
-	mac.Write(payload)
-	expectedMAC := mac.Sum(nil)
-	expectedSignature := base64.StdEncoding.EncodeToString(expectedMAC)
+	// 1. Decode the signature from the header
+	sigBytes, err := base64.StdEncoding.DecodeString(signature)
+	if err != nil {
+		return false
+	}
 
-	return hmac.Equal([]byte(signature), []byte(expectedSignature))
+	// 2. Hash the payload
+	// Most providers use SHA256 for RSA signatures
+	hash := sha256.Sum256(payload)
+
+	// 3. Verify using the Public Key
+	// We use rsa.VerifyPKCS1v15 for standard RSA signatures
+	err = rsa.VerifyPKCS1v15(s.publicKey, crypto.SHA256, hash[:], sigBytes)
+
+	return err == nil
 }
 
 // handleWebhook processes incoming webhook requests
@@ -186,6 +219,10 @@ func main() {
 		log.Fatalf("Failed to create server: %v", err)
 	}
 	defer server.Close()
+
+	if err := server.initialiseKey(); err != nil {
+		log.Fatalf("Failed to initialise key: %v", err)
+	}
 
 	// Set up HTTP handlers
 	http.HandleFunc("/webhook", server.handleWebhook)
