@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
-	"crypto/hmac"
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/json"
@@ -15,28 +17,45 @@ import (
 )
 
 func TestVerifySignature(t *testing.T) {
+	// Generate an RSA key pair for testing
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("Failed to generate RSA key: %v", err)
+	}
+
 	config := &Config{
-		WebhookSecret: "test-secret",
+		// WebhookSecret must be non-empty to trigger RSA verification; the
+		// actual signing/verification uses the RSA key pair set on the server.
+		WebhookSecret: "not-empty",
 	}
 	server := &Server{
-		config: config,
+		config:    config,
+		publicKey: &privateKey.PublicKey,
 	}
 
 	payload := []byte(`{"eventType":"TEST"}`)
 
-	// Create valid signature
-	mac := hmac.New(sha512.New, []byte(config.WebhookSecret))
-	mac.Write(payload)
-	validSignature := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	// Create a valid RSA PKCS1v15 SHA-512 signature
+	hash := sha512.Sum512(payload)
+	sigBytes, err := rsa.SignPKCS1v15(rand.Reader, privateKey, crypto.SHA512, hash[:])
+	if err != nil {
+		t.Fatalf("Failed to sign payload: %v", err)
+	}
+	validSignature := base64.StdEncoding.EncodeToString(sigBytes)
 
 	// Test valid signature
 	if !server.verifySignature(payload, validSignature) {
 		t.Error("Valid signature was rejected")
 	}
 
-	// Test invalid signature
-	if server.verifySignature(payload, "invalid-signature") {
+	// Test invalid signature: valid base64 ("invalid") but wrong RSA bytes
+	if server.verifySignature(payload, "aW52YWxpZA==") {
 		t.Error("Invalid signature was accepted")
+	}
+
+	// Test non-base64 signature
+	if server.verifySignature(payload, "not-valid-base64!!!") {
+		t.Error("Non-base64 signature was accepted")
 	}
 }
 
@@ -155,8 +174,8 @@ func TestLoadConfig(t *testing.T) {
 
 func TestWebhookEventParsing(t *testing.T) {
 	eventJSON := `{
-		"eventType": "TRANSACTION_FEED_ITEM_CREATED",
-		"timestamp": "2023-06-17T10:43:17.892Z",
+		"webhookType": "TRANSACTION_FEED_ITEM_CREATED",
+		"eventTimestamp": "2023-06-17T10:43:17.892Z",
 		"content": {
 			"feedItemUid": "abc-123",
 			"amount": {

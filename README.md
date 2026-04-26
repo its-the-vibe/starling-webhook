@@ -1,5 +1,7 @@
 # starling-webhook
 
+[![CI](https://github.com/its-the-vibe/starling-webhook/actions/workflows/ci.yaml/badge.svg)](https://github.com/its-the-vibe/starling-webhook/actions/workflows/ci.yaml)
+
 A simple Go web service which consumes Starling Bank webhook events and publishes them to Redis pub/sub.
 
 ## Overview

@@ -75,6 +75,10 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) initialiseKey() error {
+	if s.config.WebhookSecret == "" {
+		return nil
+	}
+
 	// Decode the Base64 string from your config
 	der, err := base64.StdEncoding.DecodeString(s.config.WebhookSecret)
 	if err != nil {
