@@ -3,6 +3,8 @@ services:
   starling-webhook:
     build: .
     read_only: true
+    image: ghcr.io/its-the-vibe/starling-webhook:latest
+    pull_policy: always
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
