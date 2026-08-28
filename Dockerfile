@@ -1,30 +1,24 @@
 # Build stage
-FROM golang:1.27.0-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27.0-alpine AS builder
 
-WORKDIR /app
+ARG TARGETOS
+ARG TARGETARCH
 
-# Copy go mod files
+WORKDIR /build
+
 COPY go.mod go.sum ./
-
-# Download dependencies
 RUN go mod download
 
-# Copy source code
 COPY . .
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o /starling-webhook .
 
-# Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o starling-webhook .
+# Runtime stage (distroless)
+FROM gcr.io/distroless/static-debian13:nonroot
 
-# Final stage
-FROM scratch
+COPY --from=builder /starling-webhook /starling-webhook
 
-WORKDIR /root/
+USER nonroot:nonroot
 
-# Copy the binary from builder
-COPY --from=builder /app/starling-webhook .
-
-# Expose port
 EXPOSE 8080
 
-# Run the binary
-CMD ["./starling-webhook"]
+ENTRYPOINT ["/starling-webhook"]
